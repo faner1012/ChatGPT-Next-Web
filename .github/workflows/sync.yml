@@ -1,16 +1,12 @@
 name: Upstream Sync
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  repository-projects: write
-  statuses: write
+  contents: write  # 必须，确保脚本有权把代码推送到你的仓库
 
 on:
   schedule:
-    - cron: "0 * * * *" # 每小时自动同步一次
-  workflow_dispatch: # 支持手动点击触发同步
+    - cron: "0 * * * *"  # 每小时自动同步一次
+  workflow_dispatch:     # 支持手动点击触发同步
 
 jobs:
   sync_latest_from_upstream:
@@ -19,16 +15,30 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
+      # 1. 检出你自己的仓库代码
       - name: Checkout target repo
         uses: actions/checkout@v4
-
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
-          # ⚠️ 注意：以下参数已全部更换为新版本支持的正确名称
-          upstream_sync_repo: ChatGPTNextWeb/NextChat
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-          test_mode: false
+          fetch-depth: 0 # 必须获取全部历史提交，否则合并会报错
+
+      # 2. 运行纯 Git 命令完成上游代码的合并和同步
+      - name: Sync upstream changes
+        run: |
+          # 配置临时机器人身份
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@://github.com"
+          
+          # 添加原作者的官方 NextChat 仓库作为上游
+          git remote add upstream https://github.com
+          
+          # 抓取原作者的最新代码
+          git fetch upstream main
+          
+          # 强行合并原作者的最新分支到你的 main 分支（允许没有共同祖先的历史）
+          git checkout main
+          git merge upstream/main --allow-unrelated-histories -m "🔄 自动同步上游最新代码"
+          
+          # 推送回你自己的 GitHub 仓库
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
