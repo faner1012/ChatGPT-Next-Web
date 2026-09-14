@@ -1,12 +1,12 @@
 name: Upstream Sync
 
 permissions:
-  contents: write  # 显式声明拥有仓库写权限
+  contents: write
 
 on:
   schedule:
-    - cron: "0 * * * *"  # 每小时自动同步一次
-  workflow_dispatch:     # 支持手动点击触发同步
+    - cron: "0 0 * * *" # every day
+  workflow_dispatch:
 
 jobs:
   sync_latest_from_upstream:
@@ -15,28 +15,26 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
-      # 1. 检出你自己的仓库代码
+      # Step 1: run a standard checkout action
       - name: Checkout target repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 获取全部历史提交，防止合并失败
+        uses: actions/checkout@v3
 
-      # 2. 运行纯 Git 命令完成同步
+      # Step 2: run the sync action
       - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          upstream_sync_repo: ChatGPTNextWeb/ChatGPT-Next-Web
+          upstream_sync_branch: main
+          target_sync_branch: main
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
+
+          # Set test_mode true to run tests instead of the true action!!
+          test_mode: false
+
+      - name: Sync check
+        if: failure()
         run: |
-          # 配置自动化机器人身份
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@://github.com"
-          
-          # 添加原作者的官方仓库作为上游
-          git remote add upstream https://github.com
-          
-          # 抓取原作者最新代码
-          git fetch upstream main
-          
-          # 强行合并
-          git checkout main
-          git merge upstream/main --allow-unrelated-histories -m "🔄 自动同步上游最新代码"
-          
-          # 💡 关键修复：利用加密令牌强行推送到你自己的 origin 仓库
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@://github.com{{ github.repository }}.git main
+          echo "[Error] 由于上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次，详细教程请查看：https://github.com/Yidadaa/ChatGPT-Next-Web/blob/main/README_CN.md#%E6%89%93%E5%BC%80%E8%87%AA%E5%8A%A8%E6%9B%B4%E6%96%B0"
+          echo "[Error] Due to a change in the workflow file of the upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork. Please refer to the detailed tutorial for instructions: https://github.com/Yidadaa/ChatGPT-Next-Web#enable-automatic-updates"
+          exit 1
