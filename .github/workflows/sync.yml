@@ -1,8 +1,12 @@
 name: Upstream Sync
 
+# 必须声明完整的权限块，否则会被新版 Action 插件拒绝
 permissions:
   contents: write
-  pull-requests: write # 显式声明 PR 写入权限
+  pull-requests: write
+  issues: write
+  repository-projects: write
+  statuses: write
 
 on:
   schedule:
@@ -16,11 +20,11 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
-      # 第一步：升级至 v4 解决 Node 20 警告
+      # 1. 使用最新 v4 解决 Node 20 警告
       - name: Checkout target repo
         uses: actions/checkout@v4
 
-      # 第二步：升级至 v3.4.1 并配合你刚才开通的 PR 权限，彻底解决同步报错
+      # 2. 使用最新 v3.4.1 并注入完整的 GITHUB_TOKEN 安全令牌
       - name: Sync upstream changes
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
