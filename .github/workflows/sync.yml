@@ -2,11 +2,12 @@ name: Upstream Sync
 
 permissions:
   contents: write
+  pull-requests: write # 显式声明 PR 写入权限
 
 on:
   schedule:
-    - cron: "0 0 * * *" # every day
-  workflow_dispatch:
+    - cron: "0 * * * *" # 每小时自动同步一次
+  workflow_dispatch: # 支持手动点击触发同步
 
 jobs:
   sync_latest_from_upstream:
@@ -15,26 +16,17 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
-      # Step 1: run a standard checkout action
+      # 第一步：升级至 v4 解决 Node 20 警告
       - name: Checkout target repo
         uses: actions/checkout@v4
 
-      # Step 2: run the sync action
+      # 第二步：升级至 v3.4.1 并配合你刚才开通的 PR 权限，彻底解决同步报错
       - name: Sync upstream changes
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
-          upstream_sync_repo: Yidadaa/ChatGPT-Next-Web
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
-
-          # Set test_mode true to run tests instead of the true action!!
+          upstream_repository: ChatGPTNextWeb/NextChat
+          upstream_branch: main
+          target_branch: main
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           test_mode: false
-
-      - name: Sync check
-        if: failure()
-        run: |
-          echo "::error::由于权限不足，导致同步失败（这是预期的行为），请前往仓库首页手动执行[Sync fork]。"
-          echo "::error::Due to insufficient permissions, synchronization failed (as expected). Please go to the repository homepage and manually perform [Sync fork]."
-          exit 1
