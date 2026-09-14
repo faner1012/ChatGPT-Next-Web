@@ -1,6 +1,5 @@
 name: Upstream Sync
 
-# 必须声明完整的权限块，否则会被新版 Action 插件拒绝
 permissions:
   contents: write
   pull-requests: write
@@ -20,17 +19,16 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
-      # 1. 使用最新 v4 解决 Node 20 警告
       - name: Checkout target repo
         uses: actions/checkout@v4
 
-      # 2. 使用最新 v3.4.1 并注入完整的 GITHUB_TOKEN 安全令牌
       - name: Sync upstream changes
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
-          upstream_repository: ChatGPTNextWeb/NextChat
-          upstream_branch: main
-          target_branch: main
+          # ⚠️ 注意：以下参数已全部更换为新版本支持的正确名称
+          upstream_sync_repo: ChatGPTNextWeb/NextChat
+          upstream_sync_branch: main
+          target_sync_branch: main
           target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           test_mode: false
