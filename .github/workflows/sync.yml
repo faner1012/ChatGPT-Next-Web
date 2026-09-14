@@ -1,7 +1,7 @@
 name: Upstream Sync
 
 permissions:
-  contents: write  # 必须，确保脚本有权把代码推送到你的仓库
+  contents: write  # 显式声明拥有仓库写权限
 
 on:
   schedule:
@@ -19,26 +19,24 @@ jobs:
       - name: Checkout target repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 必须获取全部历史提交，否则合并会报错
+          fetch-depth: 0 # 获取全部历史提交，防止合并失败
 
-      # 2. 运行纯 Git 命令完成上游代码的合并和同步
+      # 2. 运行纯 Git 命令完成同步
       - name: Sync upstream changes
         run: |
-          # 配置临时机器人身份
+          # 配置自动化机器人身份
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@://github.com"
           
-          # 添加原作者的官方 NextChat 仓库作为上游
+          # 添加原作者的官方仓库作为上游
           git remote add upstream https://github.com
           
-          # 抓取原作者的最新代码
+          # 抓取原作者最新代码
           git fetch upstream main
           
-          # 强行合并原作者的最新分支到你的 main 分支（允许没有共同祖先的历史）
+          # 强行合并
           git checkout main
           git merge upstream/main --allow-unrelated-histories -m "🔄 自动同步上游最新代码"
           
-          # 推送回你自己的 GitHub 仓库
-          git push origin main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 💡 关键修复：利用加密令牌强行推送到你自己的 origin 仓库
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@://github.com{{ github.repository }}.git main
